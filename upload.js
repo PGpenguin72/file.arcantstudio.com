@@ -3,7 +3,7 @@ const input = document.getElementById('file-input');
 const button = document.getElementById('upload-btn');
 const fileList = document.getElementById('file-list');
 
-const WORKER_UPLOAD_URL = 'https://file.arcantstudio.com/upload'; // 你會換成自己的 Worker 網址
+const WORKER_UPLOAD_URL = 'https://upload-arcantstudio.tu28291797.workers.dev/'; // 你會換成自己的 Worker 網址
 const PUBLIC_FOLDER_URL = 'https://file.arcantstudio.com/public/'; // 你會換成自己網頁網址
 
 // 顯示 GitHub 上的檔案清單
