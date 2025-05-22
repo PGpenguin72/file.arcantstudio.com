@@ -1,7 +1,6 @@
 const input = document.getElementById('file-input');
 const button = document.getElementById('upload-btn');
 const fileList = document.getElementById('file-list');
-
 const WORKER_UPLOAD_URL = 'https://upload-arcantstudio.tu28291797.workers.dev/';
 const PUBLIC_FOLDER_URL = 'https://file.arcantstudio.com/public/';
 
@@ -10,13 +9,11 @@ async function loadFiles() {
   try {
     const res = await fetch('https://api.github.com/repos/PGpenguin72/file.arcantstudio.com/contents/public');
     const files = await res.json();
-
     if (!Array.isArray(files)) {
       fileList.innerHTML = '讀取失敗：GitHub 回傳錯誤';
       console.error(files);
       return;
     }
-
     fileList.innerHTML = files.map(file =>
       `<a href="${PUBLIC_FOLDER_URL}${file.name}" target="_blank">${file.name}</a>`
     ).join('<br>');
@@ -26,6 +23,20 @@ async function loadFiles() {
   }
 }
 
+// Helper function to convert ArrayBuffer to Base64 for large files
+function arrayBufferToBase64(buffer) {
+  const uint8Array = new Uint8Array(buffer);
+  const chunkSize = 8192; // Process in chunks to avoid call stack overflow
+  let binaryString = '';
+  
+  for (let i = 0; i < uint8Array.length; i += chunkSize) {
+    const chunk = uint8Array.slice(i, i + chunkSize);
+    binaryString += String.fromCharCode.apply(null, chunk);
+  }
+  
+  return btoa(binaryString);
+}
+
 loadFiles();
 
 button.onclick = async () => {
@@ -33,18 +44,17 @@ button.onclick = async () => {
   try {
     const file = input.files[0];
     if (!file) return alert('請選擇檔案！');
-
+    
     const content = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(content)));
-
+    const base64 = arrayBufferToBase64(content);
+    
     const res = await fetch(WORKER_UPLOAD_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ filename: file.name, content: base64 }),
     });
-
+    
     const data = await res.json();
-
     if (res.ok) {
       alert('上傳成功！');
       await loadFiles(); // 載入最新檔案列表
