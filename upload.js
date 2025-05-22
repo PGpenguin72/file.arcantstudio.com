@@ -52,7 +52,7 @@ button.onclick = async () => {
 
     if (res.ok) {
       alert('上傳成功！');
-      loadFiles();
+      loadFiles();  // <-- 這裡呼叫載入檔案列表
     } else {
       console.error('上傳錯誤：', data);
       alert('上傳失敗，詳情請看 console');
