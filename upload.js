@@ -9,7 +9,7 @@ const PUBLIC_FOLDER_URL = 'https://file.arcantstudio.com/public/'; // 你會換�
 // 顯示 GitHub 上的檔案清單
 async function loadFiles() {
   fileList.innerHTML = '載入中...';
-  const res = await fetch('https://api.github.com/repos/PGpenguin72/file.arcantstudio.com/new/main/contents/public');
+  const res = await fetch('https://api.github.com/repos/PGpenguin72/file.arcantstudio.com/contents/public');
   const files = await res.json();
 
   fileList.innerHTML = files.map(file =>
