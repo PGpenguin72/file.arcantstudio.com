@@ -35,10 +35,8 @@ button.onclick = async () => {
     headers: { 'Content-Type': 'application/json' }
   });
 
-  if (res.ok) {
-    alert('上傳成功！');
-    loadFiles();
-  } else {
-    alert('上傳失敗！');
-  }
-};
+if (!res.ok) {
+  const errorText = await res.text();
+  console.error(errorText);
+  alert("上傳失敗！錯誤資訊已顯示在開發者工具 Console");
+}
