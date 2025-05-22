@@ -38,21 +38,27 @@ button.onclick = async () => {
   const content = await file.arrayBuffer();
   const base64 = btoa(String.fromCharCode(...new Uint8Array(content)));
 
-  const res = await fetch(WORKER_UPLOAD_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-      filename: file.name,
-      content: base64
-    }),
-    headers: { 'Content-Type': 'application/json' }
-  });
+  try {
+    const res = await fetch(WORKER_UPLOAD_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        filename: file.name,
+        content: base64
+      }),
+      headers: { 'Content-Type': 'application/json' }
+    });
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error(errorText);
-    alert("上傳失敗！錯誤資訊已顯示在開發者工具 Console");
-  } else {
-    alert("上傳成功！");
-    loadFiles(); // 更新清單
+    const data = await res.json();
+
+    if (res.ok) {
+      alert('上傳成功！');
+      loadFiles();
+    } else {
+      console.error('上傳錯誤：', data);
+      alert('上傳失敗，詳情請看 console');
+    }
+  } catch (err) {
+    console.error('fetch 發生錯誤：', err);
+    alert('網路錯誤，請稍後再試');
   }
 };
