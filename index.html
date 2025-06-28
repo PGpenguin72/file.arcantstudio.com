@@ -8,12 +8,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <h1>📦 我的雲端硬碟</h1>
-
-  <div id="login-container" style="text-align: center; margin-top: 50px;">
-    <p>請先登入以使用檔案管理功能。</p>
+  <div id="login-container" style="display: block;">
+    <h2>管理員登入</h2>
     <div id="g_id_onload"
-         data-client_id="98570753690-5lkkv0cg3r6d71cc9rs2p8uijmo8b8rv.apps.googleusercontent.com" data-callback="handleCredentialResponse"
+         data-client_id="YOUR_GOOGLE_CLIENT_ID" data-callback="handleCredentialResponse"
          data-auto_prompt="false">
     </div>
     <div class="g_id_signin"
@@ -24,21 +22,21 @@
          data-shape="rectangular"
          data-logo_alignment="left">
     </div>
+    <p>請使用管理員帳戶登入。</p>
   </div>
 
   <div id="main-content" style="display: none;">
-    <div style="text-align: right; margin-bottom: 20px;">
-      <span id="user-email" style="margin-right: 10px; font-weight: bold;"></span>
-      <button id="logout-btn" style="background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">登出</button>
-    </div>
+    <p>歡迎，<span id="user-email"></span>！</p>
 
+    <h1>📦 我的雲端硬碟</h1>
+    
     <div id="file-list">載入中...</div>
 
     <h2>上傳檔案</h2>
     <input type="file" id="file-input"/>
     <button id="upload-btn">上傳</button>
-  </div>
 
+  </div>
   <script src="upload.js"></script>
 </body>
 </html>
