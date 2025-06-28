@@ -1,17 +1,18 @@
-const input = document.getElementById('file-input');
-const button = document.getElementById('upload-btn');
-const fileList = document.getElementById('file-list');
+// 檔案大小限制（以位元組為單位）
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB，考慮到 Base64 編碼會增加約 33% 大小
 const WORKER_UPLOAD_URL = 'https://upload-arcantstudio.tu28291797.workers.dev/';
 const PUBLIC_FOLDER_URL = 'https://file.arcantstudio.com/public/';
 
-// 檔案大小限制（以位元組為單位）
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB，考慮到 Base64 編碼會增加約 33% 大小
-
 // 登入相關變數
-const loginContainer = document.getElementById('login-container');
-const mainContent = document.getElementById('main-content');
-const userEmailSpan = document.getElementById('user-email');
 let googleIdToken = null;
+
+// 在 DOMContentLoaded 之後才會初始化這些元素和事件監聽器
+let input;
+let button;
+let fileList;
+let loginContainer;
+let mainContent;
+let userEmailSpan;
 
 async function loadFiles() {
   fileList.innerHTML = '載入中...';
@@ -286,18 +287,6 @@ async function renameFile(oldFilename, sha) {
   }
 }
 
-// 事件監聽器
-button.addEventListener('click', uploadFile);
-
-// 頁面載入時載入檔案列表 - 登入功能相關
-document.addEventListener('DOMContentLoaded', () => {
-    if (googleIdToken) {
-        verifyUser(googleIdToken); // 如果已經有 token，嘗試驗證
-    } else {
-        showLoginUI(); // 否則顯示登入介面
-    }
-});
-
 // Google 登入成功後的回調函式
 async function handleCredentialResponse(response) {
   if (response.credential) {
@@ -347,6 +336,27 @@ function showLoginUI() {
     mainContent.style.display = 'none';
     userEmailSpan.textContent = '';
 }
+
+// DOMContentLoaded 事件監聽器：確保 HTML 完全載入後再執行腳本
+document.addEventListener('DOMContentLoaded', () => {
+    // 初始化 DOM 元素變數
+    input = document.getElementById('file-input');
+    button = document.getElementById('upload-btn');
+    fileList = document.getElementById('file-list');
+    loginContainer = document.getElementById('login-container');
+    mainContent = document.getElementById('main-content');
+    userEmailSpan = document.getElementById('user-email');
+
+    // 綁定事件監聽器
+    button.addEventListener('click', uploadFile);
+
+    // 啟動登入流程
+    if (googleIdToken) {
+        verifyUser(googleIdToken); // 如果已經有 token，嘗試驗證
+    } else {
+        showLoginUI(); // 否則顯示登入介面
+    }
+});
 
 // 將函式暴露給 HTML 中的 onclick 和 Google Sign-In 函式庫
 window.deleteFile = deleteFile;
