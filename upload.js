@@ -1,4 +1,3 @@
-// upload.js
 const input = document.getElementById('file-input');
 const button = document.getElementById('upload-btn');
 const fileList = document.getElementById('file-list');
@@ -8,7 +7,7 @@ const PUBLIC_FOLDER_URL = 'https://file.arcantstudio.com/public/';
 // 檔案大小限制（以位元組為單位）
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB，考慮到 Base64 編碼會增加約 33% 大小
 
-// --- 請取消註解以下所有變數和相關函數 ---
+// 登入相關變數
 const loginContainer = document.getElementById('login-container');
 const mainContent = document.getElementById('main-content');
 const userEmailSpan = document.getElementById('user-email');
@@ -18,7 +17,6 @@ async function loadFiles() {
   fileList.innerHTML = '載入中...';
   try {
     const res = await fetch('https://api.github.com/repos/PGpenguin72/file.arcantstudio.com/contents/public');
-    // ... (這部分保持不變)
     
     if (!res.ok) {
       if (res.status === 404) {
@@ -82,8 +80,16 @@ async function loadFiles() {
 
 async function uploadFile() {
   const file = input.files[0];
-  // ... (這部分保持不變)
-  
+  if (!file) {
+    alert('請選擇一個檔案。');
+    return;
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    alert(`檔案大小不能超過 ${MAX_FILE_SIZE / (1024 * 1024)}MB。`);
+    return;
+  }
+
   // 讀取檔案內容為 Base64
   const reader = new FileReader();
   reader.readAsDataURL(file); // 讀取為 Data URL
@@ -95,7 +101,7 @@ async function uploadFile() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': googleIdToken ? `Bearer ${googleIdToken}` : '', // <--- 取消註解這行
+          'Authorization': googleIdToken ? `Bearer ${googleIdToken}` : '', // 登入相關
         },
         body: JSON.stringify({
           action: 'upload', // 告知 Worker 這是上傳操作
@@ -104,24 +110,67 @@ async function uploadFile() {
         })
       });
 
-      // ... (這部分保持不變)
+      if (!res.ok) {
+        let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+        try {
+          const errorData = await res.json();
+          console.error('伺服器錯誤詳情：', errorData);
+          if (errorData.error) {
+            errorMessage += `\n錯誤詳情：${errorData.error}`;
+          }
+          if (errorData.details) {
+            errorMessage += `\n詳細資訊：${JSON.stringify(errorData.details)}`;
+          }
+        } catch (parseError) {
+          console.error('無法解析錯誤回應：', parseError);
+          try {
+            const textResponse = await res.text();
+            console.error('原始錯誤回應：', textResponse);
+            errorMessage += `\n原始回應：${textResponse}`;
+          } catch {
+            errorMessage += '\n無法讀取錯誤回應';
+          }
+        }
+        
+        alert(`上傳失敗：${errorMessage}`);
+        return;
+      }
+      
+      const data = await res.json();
+      console.log('上傳成功回應：', data);
+      alert(`上傳成功！檔案已儲存為：${file.name}`);
+      
+      // 重置檔案輸入框
+      input.value = '';
+      
+      // 延遲一秒後重新載入檔案列表，讓 GitHub 有時間更新
+      setTimeout(async () => {
+        await loadFiles();
+      }, 1000);
       
     } catch (error) {
       console.error('上傳過程中發生錯誤：', error);
-      // ... (這部分保持不變)
+      
+      if (error.name === 'AbortError') {
+        alert('上傳超時，請檢查網路連線或檔案大小。');
+      } else {
+        alert(`上傳過程中發生錯誤：${error.message || '未知錯誤'}`);
+      }
     }
   };
 }
 
 async function deleteFile(filename, sha) {
-  // ... (這部分保持不變)
+  if (!confirm(`確定要刪除檔案：${filename} 嗎？`)) {
+    return;
+  }
 
   try {
     const res = await fetch(WORKER_UPLOAD_URL, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': googleIdToken ? `Bearer ${googleIdToken}` : '', // <--- 取消註解這行
+        'Authorization': googleIdToken ? `Bearer ${googleIdToken}` : '', // 登入相關
       },
       body: JSON.stringify({
         action: 'delete', // 告知 Worker 這是刪除操作
@@ -130,23 +179,64 @@ async function deleteFile(filename, sha) {
       })
     });
 
-    // ... (這部分保持不變)
+    if (!res.ok) {
+      let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      try {
+        const errorData = await res.json();
+        console.error('伺服器錯誤詳情：', errorData);
+        if (errorData.error) {
+          errorMessage += `\n錯誤詳情：${errorData.error}`;
+        }
+        if (errorData.details) {
+          errorMessage += `\n詳細資訊：${JSON.stringify(errorData.details)}`;
+        }
+      } catch (parseError) {
+        console.error('無法解析錯誤回應：', parseError);
+        try {
+          const textResponse = await res.text();
+          console.error('原始錯誤回應：', textResponse);
+          errorMessage += `\n原始回應：${textResponse}`;
+        } catch {
+          errorMessage += '\n無法讀取錯誤回應';
+        }
+      }
+      alert(`刪除失敗：${errorMessage}`);
+      return;
+    }
+
+    const data = await res.json();
+    console.log('刪除成功回應：', data);
+    alert(`檔案 ${filename} 已成功刪除！`);
+    
+    // 延遲一秒後重新載入檔案列表，讓 GitHub 有時間更新
+    setTimeout(async () => {
+      await loadFiles();
+    }, 1000);
 
   } catch (error) {
     console.error('刪除過程中發生錯誤：', error);
-    // ... (這部分保持不變)
+    alert(`刪除過程中發生錯誤：${error.message || '未知錯誤'}`);
   }
 }
 
+// 重新命名檔案函式
 async function renameFile(oldFilename, sha) {
-  // ... (這部分保持不變)
+  const newFilename = prompt(`請輸入 ${oldFilename} 的新名稱：`);
+  if (!newFilename) {
+    // 用戶取消或輸入空名稱
+    return;
+  }
+  if (newFilename === oldFilename) {
+    alert('新名稱與舊名稱相同，無需更改。');
+    return;
+  }
 
   try {
     const res = await fetch(WORKER_UPLOAD_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': googleIdToken ? `Bearer ${googleIdToken}` : '', // <--- 取消註解這行
+        'Authorization': googleIdToken ? `Bearer ${googleIdToken}` : '', // 登入相關
       },
       body: JSON.stringify({
         action: 'rename', // 告知 Worker 這是重新命名操作
@@ -156,29 +246,58 @@ async function renameFile(oldFilename, sha) {
       })
     });
 
-    // ... (這部分保持不變)
+    if (!res.ok) {
+      let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      try {
+        const errorData = await res.json();
+        console.error('伺服器錯誤詳情：', errorData);
+        if (errorData.error) {
+          errorMessage += `\n錯誤詳情：${errorData.error}`;
+        }
+        if (errorData.details) {
+          errorMessage += `\n詳細資訊：${JSON.stringify(errorData.details)}`;
+        }
+      } catch (parseError) {
+        console.error('無法解析錯誤回應：', parseError);
+        try {
+          const textResponse = await res.text();
+          console.error('原始錯誤回應：', textResponse);
+          errorMessage += `\n原始回應：${textResponse}`;
+        } catch {
+          errorMessage += '\n無法讀取錯誤回應';
+        }
+      }
+      alert(`更改名稱失敗：${errorMessage}`);
+      return;
+    }
+
+    const data = await res.json();
+    console.log('更改名稱成功回應：', data);
+    alert(`檔案 ${oldFilename} 已成功更改名稱為 ${newFilename}！`);
+    
+    // 延遲一秒後重新載入檔案列表
+    setTimeout(async () => {
+      await loadFiles();
+    }, 1000);
 
   } catch (error) {
     console.error('更改名稱過程中發生錯誤：', error);
-    // ... (這部分保持不變)
+    alert(`更改名稱過程中發生錯誤：${error.message || '未知錯誤'}`);
   }
 }
 
 // 事件監聽器
 button.addEventListener('click', uploadFile);
 
-// 頁面載入時載入檔案列表
+// 頁面載入時載入檔案列表 - 登入功能相關
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 請取消註解以下部分 ---
     if (googleIdToken) {
         verifyUser(googleIdToken); // 如果已經有 token，嘗試驗證
     } else {
         showLoginUI(); // 否則顯示登入介面
     }
-    // loadFiles(); // 這行請註解掉或刪除，因為 verifyUser 會呼叫 loadFiles
 });
 
-// --- 請取消註解以下所有函數 ---
 // Google 登入成功後的回調函式
 async function handleCredentialResponse(response) {
   if (response.credential) {
@@ -229,10 +348,7 @@ function showLoginUI() {
     userEmailSpan.textContent = '';
 }
 
-// 將 deleteFile 和 renameFile 暴露給 HTML 中的 onclick (如果沒有使用模組化js)
+// 將函式暴露給 HTML 中的 onclick 和 Google Sign-In 函式庫
 window.deleteFile = deleteFile;
 window.renameFile = renameFile;
-
-// --- 請取消註解這行 ---
-// 確保 handleCredentialResponse 對 Google Sign-In 函式庫是可見的
 window.handleCredentialResponse = handleCredentialResponse;
