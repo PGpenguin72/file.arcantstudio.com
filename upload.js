@@ -11,17 +11,15 @@ let googleIdToken = null; // 用於儲存 Google ID Token
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB，考慮到 Base64 編碼會增加約 33% 大小
 
 // 在 DOMContentLoaded 之後才會初始化這些元素和事件監聽器
-// 這些變數現在是 `let`，且在 DOMContentLoaded 事件中才獲取其值
 let input;
-let uploadButton; // 改名以避免與外部 button.onclick 混淆
+let uploadButton; 
 let fileList;
 let loginContainer;
 let mainContent;
 let userEmailSpan;
-let logoutButton; // 登出按鈕
+let logoutButton; 
 
 // --- Google 登入相關函式 ---
-// Google 登入成功後的回調函式
 async function handleCredentialResponse(response) {
   if (response.credential) {
     googleIdToken = response.credential;
@@ -30,52 +28,49 @@ async function handleCredentialResponse(response) {
   }
 }
 
-// 驗證使用者身份 (與 Worker 溝通)
 async function verifyUser(idToken) {
   try {
     const res = await fetch(WORKER_UPLOAD_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}` // 傳遞 ID Token
+        'Authorization': `Bearer ${idToken}` 
       },
-      body: JSON.stringify({ action: 'verify_user' }) // 特殊的 action
+      body: JSON.stringify({ action: 'verify_user' }) 
     });
 
     const data = await res.json();
 
     if (res.ok && data.success) {
       console.log('User verified successfully:', data.email);
-      userEmailSpan.textContent = data.email; // 顯示用戶郵箱
+      userEmailSpan.textContent = data.email; 
       loginContainer.style.display = 'none';
       mainContent.style.display = 'block';
-      await loadFiles(); // 驗證成功後載入檔案列表
+      await loadFiles(); 
     } else {
       console.error('User verification failed:', data.message || 'Unknown error');
       alert(`登入失敗：${data.message || '無效的使用者或權限不足'}`);
-      googleIdToken = null; // 清除無效 Token
-      showLoginUI(); // 顯示登入介面
+      googleIdToken = null; 
+      showLoginUI(); 
     }
   } catch (error) {
     console.error('Error during user verification:', error);
     alert('網路錯誤，無法驗證使用者身份。');
-    googleIdToken = null; // 清除 Token
-    showLoginUI(); // 顯示登入介面
+    googleIdToken = null; 
+    showLoginUI(); 
   }
 }
 
-// 顯示登入介面
 function showLoginUI() {
     loginContainer.style.display = 'block';
     mainContent.style.display = 'none';
     userEmailSpan.textContent = '';
 }
 
-// 處理登出
 function logout() {
-    google.accounts.id.disableAutoSelect(); // 禁用自動選擇
-    googleIdToken = null; // 清除 Token
-    showLoginUI(); // 顯示登入介面
+    google.accounts.id.disableAutoSelect(); 
+    googleIdToken = null; 
+    showLoginUI(); 
     console.log('User logged out.');
 }
 
@@ -83,17 +78,17 @@ function logout() {
 
 async function loadFiles() {
   if (!googleIdToken) {
-    fileList.innerHTML = '<p>請先登入以載入檔案列表。</p>';
+    fileList.innerHTML = '<p class="info-message">請先登入以載入檔案列表。</p>';
     showLoginUI();
     return;
   }
-  fileList.innerHTML = '載入中...';
+  fileList.innerHTML = '<p class="info-message">載入中...</p>';
   try {
     const res = await fetch('https://api.github.com/repos/PGpenguin72/file.arcantstudio.com/contents/public');
     
     if (!res.ok) {
       if (res.status === 404) {
-        fileList.innerHTML = '目錄不存在或為空。請確認 GitHub 儲存庫中存在 `public` 資料夾。';
+        fileList.innerHTML = '<p class="info-message">目錄不存在或為空。請確認 GitHub 儲存庫中存在 `public` 資料夾。</p>';
         console.log('public 目錄可能還不存在，這是正常的，或者尚未有檔案');
         return;
       }
@@ -103,52 +98,74 @@ async function loadFiles() {
     const files = await res.json();
     console.log('GitHub API 回應：', files);
     
-    // 檢查回應格式
     if (!Array.isArray(files)) {
       if (files.message) {
-        fileList.innerHTML = `GitHub API 錯誤：${files.message}`;
+        fileList.innerHTML = `<p class="error-message">GitHub API 錯誤：${files.message}</p>`;
         console.error('GitHub API 錯誤：', files);
         return;
       }
-      fileList.innerHTML = '無法載入檔案列表：非預期的回應格式。';
+      fileList.innerHTML = '<p class="error-message">無法載入檔案列表：非預期的回應格式。</p>';
       return;
     }
 
     const fileItems = files.filter(item => item.type === 'file');
 
     if (fileItems.length === 0) {
-      fileList.innerHTML = '目前沒有檔案。';
+      fileList.innerHTML = '<p class="info-message">目前沒有檔案。</p>';
       return;
     }
     
     fileList.innerHTML = ''; // 清空列表
     fileItems.forEach(file => {
-      const div = document.createElement('div');
-      div.className = 'file-item'; // 添加一個 class 以便 CSS 樣式化
+      const fileCard = document.createElement('div');
+      fileCard.className = 'file-card'; 
 
-      const link = document.createElement('a');
-      link.href = PUBLIC_FOLDER_URL + file.name;
-      link.target = '_blank';
-      link.textContent = `📄 ${file.name} (${formatFileSize(file.size)})`;
+      // 檔案名稱和連結
+      const fileLink = document.createElement('a');
+      fileLink.href = PUBLIC_FOLDER_URL + file.name;
+      fileLink.target = '_blank';
+      fileLink.className = 'file-link';
+      
+      const fileIcon = document.createElement('span');
+      fileIcon.className = 'file-icon';
+      fileIcon.textContent = '📄'; // 您可以在這裡根據檔案類型判斷顯示不同的圖標
+
+      const fileNameText = document.createElement('span');
+      fileNameText.className = 'file-name-text';
+      fileNameText.textContent = file.name;
+
+      const fileSize = document.createElement('span');
+      fileSize.className = 'file-size';
+      fileSize.textContent = ` (${formatFileSize(file.size)})`;
+
+      fileLink.appendChild(fileIcon);
+      fileLink.appendChild(fileNameText);
+      fileLink.appendChild(fileSize);
+
+      // 操作按鈕容器
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'file-actions';
 
       const deleteBtn = document.createElement('button');
-      deleteBtn.textContent = '🗑️ 刪除';
-      deleteBtn.className = 'action-btn delete-btn'; // 添加 class
+      deleteBtn.textContent = '刪除';
+      deleteBtn.className = 'btn btn-danger btn-sm'; 
       deleteBtn.onclick = () => deleteFile(file.name, file.sha);
 
       const renameBtn = document.createElement('button');
-      renameBtn.textContent = '✏️ 更改名稱';
-      renameBtn.className = 'action-btn rename-btn'; // 添加 class
+      renameBtn.textContent = '改名';
+      renameBtn.className = 'btn btn-secondary btn-sm'; 
       renameBtn.onclick = () => renameFile(file.name, file.sha);
 
-      div.appendChild(link);
-      div.appendChild(deleteBtn);
-      div.appendChild(renameBtn); // *** 這行會把更改名稱按鈕加進去 ***
-      fileList.appendChild(div);
+      actionsDiv.appendChild(deleteBtn);
+      actionsDiv.appendChild(renameBtn); 
+
+      fileCard.appendChild(fileLink);
+      fileCard.appendChild(actionsDiv);
+      fileList.appendChild(fileCard);
     });
   } catch (error) {
     console.error('載入檔案列表失敗：', error);
-    fileList.innerHTML = `載入檔案列表失敗：${error.message || '未知錯誤'}`;
+    fileList.innerHTML = `<p class="error-message">載入檔案列表失敗：${error.message || '未知錯誤'}</p>`;
   }
 }
 
@@ -185,16 +202,16 @@ async function uploadFile() {
     const timeoutId = setTimeout(() => {
       controller.abort();
       console.log('請求超時，已取消');
-    }, 30000); // 30秒超時
+    }, 30000); 
     
     const res = await fetch(WORKER_UPLOAD_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${googleIdToken}` // 加入 Authorization header
+        'Authorization': `Bearer ${googleIdToken}` 
       },
       body: JSON.stringify({ 
-        action: 'upload', // 告知 Worker 這是上傳操作
+        action: 'upload', 
         filename: file.name, 
         content: base64 
       }),
@@ -276,10 +293,10 @@ async function deleteFile(filename, sha) {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${googleIdToken}` // 加入 Authorization header
+        'Authorization': `Bearer ${googleIdToken}` 
       },
       body: JSON.stringify({ 
-        action: 'delete', // 告知 Worker 這是刪除操作
+        action: 'delete', 
         filename: filename,
         sha: sha
       }),
@@ -315,7 +332,6 @@ async function deleteFile(filename, sha) {
   }
 }
 
-// 重新命名檔案函式
 async function renameFile(oldFilename, sha) {
   if (!googleIdToken) {
     alert('請先登入才能更改名稱！');
@@ -324,7 +340,6 @@ async function renameFile(oldFilename, sha) {
   }
   const newFilename = prompt(`請輸入 ${oldFilename} 的新名稱：`);
   if (!newFilename) {
-    // 用戶取消或輸入空名稱
     return;
   }
   if (newFilename === oldFilename) {
@@ -340,7 +355,7 @@ async function renameFile(oldFilename, sha) {
         'Authorization': googleIdToken ? `Bearer ${googleIdToken}` : '', 
       },
       body: JSON.stringify({
-        action: 'rename', // 告知 Worker 這是重新命名操作
+        action: 'rename', 
         oldFilename: oldFilename,
         newFilename: newFilename,
         sha: sha 
@@ -410,10 +425,7 @@ function formatFileSize(bytes) {
 
 
 // --- 頁面載入及事件監聽器 ---
-// DOMContentLoaded 事件監聽器：確保 HTML 完全載入後再執行腳本
 document.addEventListener('DOMContentLoaded', () => {
-    // 初始化 DOM 元素變數
-    // 現在這些變數會正確地在 DOM 準備好後才獲取其值
     input = document.getElementById('file-input');
     uploadButton = document.getElementById('upload-btn'); 
     fileList = document.getElementById('file-list');
@@ -422,28 +434,30 @@ document.addEventListener('DOMContentLoaded', () => {
     userEmailSpan = document.getElementById('user-email');
     logoutButton = document.getElementById('logout-btn'); 
 
-    // 綁定事件監聽器
-    // 這裡加上了 null 檢查，以防萬一元素在非常規情況下不存在
     if (uploadButton) { 
         uploadButton.addEventListener('click', uploadFile);
     }
     if (logoutButton) { 
         logoutButton.addEventListener('click', logout);
     }
-
-    // 啟動登入流程：檢查是否有儲存的 token，否則顯示登入介面
-    // 注意：Google Identity Services 通常會處理 token 的持久化
-    // 因此這裡可以直接檢查，然後嘗試驗證
-    if (googleIdToken) { // 如果頁面載入時已經有 token (例如從 session storage 恢復)
-        verifyUser(googleIdToken); 
-    } else {
-        showLoginUI(); 
+    
+    // 如果沒有設定 Google Client ID，給出提示
+    if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID' || !GOOGLE_CLIENT_ID) {
+        alert('請在 upload.js 中設定您的 GOOGLE_CLIENT_ID');
+        console.error('錯誤：GOOGLE_CLIENT_ID 未設定。請在 upload.js 檔案頂部設定正確的 Client ID。');
+        // 為了不阻擋介面顯示，這裡不 showLoginUI，但會顯示錯誤訊息
+        // 可以考慮將登入按鈕禁用或隱藏，直到設定正確
     }
+
+    // Google Identity Services 通常會處理 token 的持久化
+    // 因此這裡可以直接檢查，然後嘗試驗證
+    // 更好的做法是讓 GSI 自動檢查登入狀態，並透過 handleCredentialResponse 回調
+    // 初次載入時直接顯示登入介面，GSI 會自動嘗試登入（如果用戶已登入）
+    showLoginUI(); 
 });
 
 // 將函式暴露給 HTML 中的 onclick 和 Google Sign-In 函式庫
-// 這是因為一些舊的 HTML onclick 屬性或外部函式庫需要直接存取這些函式
 window.handleCredentialResponse = handleCredentialResponse;
 window.deleteFile = deleteFile;
 window.renameFile = renameFile;
-window.logout = logout; // 暴露 logout 函式
+window.logout = logout;
