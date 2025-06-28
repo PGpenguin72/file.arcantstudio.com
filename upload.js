@@ -1,6 +1,6 @@
 // --- ⚙️ 全域設定 ---
 // 請替換為您的 Google Client ID
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // 請與 index (3).html 中的 client_id 保持一致
+const GOOGLE_CLIENT_ID = '98570753690-5lkkv0cg3r6d71cc9rs2p8uijmo8b8rv.apps.googleusercontent.com'; // 請與 index (3).html 中的 client_id 保持一致
 // 請替換為您的檔案管理 Worker URL
 const WORKER_UPLOAD_URL = 'https://upload-arcantstudio.tu28291797.workers.dev/'; 
 const PUBLIC_FOLDER_URL = 'https://file.arcantstudio.com/public/'; 
