@@ -56,6 +56,10 @@ h2 {
     border-bottom: 2px solid var(--border-color);
     padding-bottom: 10px;
     color: var(--secondary-color);
+    display: flex; /* 讓 h2 內部元素可以並排 */
+    align-items: center; /* 垂直居中 */
+    justify-content: center; /* 水平居中 */
+    position: relative; /* 為了絕對定位按鈕 */
 }
 
 /* 按鈕樣式 */
@@ -105,6 +109,23 @@ h2 {
     font-size: 0.85em;
     border-radius: 6px;
     margin-left: 8px; /* 小按鈕之間加間距 */
+}
+
+/* 新增的刷新按鈕樣式 */
+.btn-icon {
+    background-color: transparent; /* 透明背景 */
+    color: var(--secondary-color); /* 與標題顏色一致 */
+    padding: 5px 10px;
+    font-size: 0.9em;
+    font-weight: 600;
+    margin-left: 15px; /* 與標題文字間距 */
+    border: 1px solid var(--secondary-color); /* 邊框 */
+}
+
+.btn-icon:hover {
+    background-color: rgba(33, 150, 243, 0.1); /* 淺藍色背景 */
+    color: var(--secondary-color);
+    box-shadow: none;
 }
 
 /* 登入區塊 */
@@ -318,5 +339,16 @@ header h1 {
     .file-actions .btn-sm:not(:last-child) {
         margin-right: 8px; /* 小按鈕在同一行時的間距 */
         margin-bottom: 0;
+    }
+
+    h2 {
+        flex-direction: column; /* 小螢幕下標題和按鈕垂直排列 */
+        align-items: center;
+    }
+
+    .btn-icon {
+        margin-top: 10px; /* 刷新按鈕和標題的間距 */
+        margin-left: 0;
+        width: 100%;
     }
 }
