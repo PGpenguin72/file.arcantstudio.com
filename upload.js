@@ -11,6 +11,7 @@ let googleIdToken = null; // 用於儲存 Google ID Token
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB，考慮到 Base64 編碼會增加約 33% 大小
 
 // 在 DOMContentLoaded 之後才會初始化這些元素和事件監聽器
+// 這些變數現在是 `let`，且在 DOMContentLoaded 事件中才獲取其值
 let input;
 let uploadButton; // 改名以避免與外部 button.onclick 混淆
 let fileList;
@@ -142,7 +143,7 @@ async function loadFiles() {
 
       div.appendChild(link);
       div.appendChild(deleteBtn);
-      div.appendChild(renameBtn); // 添加更改名稱按鈕
+      div.appendChild(renameBtn); // *** 這行會把更改名稱按鈕加進去 ***
       fileList.appendChild(div);
     });
   } catch (error) {
@@ -412,19 +413,21 @@ function formatFileSize(bytes) {
 // DOMContentLoaded 事件監聽器：確保 HTML 完全載入後再執行腳本
 document.addEventListener('DOMContentLoaded', () => {
     // 初始化 DOM 元素變數
+    // 現在這些變數會正確地在 DOM 準備好後才獲取其值
     input = document.getElementById('file-input');
-    uploadButton = document.getElementById('upload-btn'); // 使用 uploadButton
+    uploadButton = document.getElementById('upload-btn'); 
     fileList = document.getElementById('file-list');
     loginContainer = document.getElementById('login-container');
     mainContent = document.getElementById('main-content');
     userEmailSpan = document.getElementById('user-email');
-    logoutButton = document.getElementById('logout-btn'); // 登出按鈕
+    logoutButton = document.getElementById('logout-btn'); 
 
     // 綁定事件監聽器
-    if (uploadButton) { // 檢查元素是否存在，避免錯誤
+    // 這裡加上了 null 檢查，以防萬一元素在非常規情況下不存在
+    if (uploadButton) { 
         uploadButton.addEventListener('click', uploadFile);
     }
-    if (logoutButton) { // 檢查元素是否存在
+    if (logoutButton) { 
         logoutButton.addEventListener('click', logout);
     }
 
