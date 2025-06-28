@@ -1,16 +1,102 @@
 const input = document.getElementById('file-input');
 const button = document.getElementById('upload-btn');
 const fileList = document.getElementById('file-list');
-const WORKER_UPLOAD_URL = 'https://upload-arcantstudio.tu28291797.workers.dev/';
-const PUBLIC_FOLDER_URL = 'https://file.arcantstudio.com/public/';
+const loginContainer = document.getElementById('login-container');
+const mainContent = document.getElementById('main-content');
+const userEmailSpan = document.getElementById('user-email');
+const logoutBtn = document.getElementById('logout-btn');
+
+// --- ⚙️ 全域設定 ---
+// 請替換為您的 Google Client ID
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // 請與 index (3).html 中的 client_id 保持一致
+// 請替換為您的檔案管理 Worker URL
+const WORKER_UPLOAD_URL = 'https://upload-arcantstudio.tu28291797.workers.dev/'; // 這是您這個檔案管理Worker的URL
+const PUBLIC_FOLDER_URL = 'https://file.arcantstudio.com/public/'; // 這是您GitHub Pages的檔案公開URL
+
+let googleIdToken = null; // 用於儲存 Google ID Token
 
 // 檔案大小限制（以位元組為單位）
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB，考慮到 Base64 編碼會增加約 33% 大小
 
+// --- Google 登入相關函式 ---
+// Google 登入成功後的回調函式
+async function handleCredentialResponse(response) {
+  if (response.credential) {
+    googleIdToken = response.credential;
+    console.log('Google ID Token received:', googleIdToken);
+    await verifyUser(googleIdToken);
+  }
+}
+
+// 驗證使用者身份 (與 Worker 溝通)
+async function verifyUser(idToken) {
+  try {
+    const res = await fetch(WORKER_UPLOAD_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}` // 傳遞 ID Token
+      },
+      body: JSON.stringify({ action: 'verify_user' }) // 特殊的 action
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      console.log('User verified successfully:', data.email);
+      userEmailSpan.textContent = data.email; // 顯示用戶郵箱
+      loginContainer.style.display = 'none';
+      mainContent.style.display = 'block';
+      await loadFiles(); // 驗證成功後載入檔案列表
+    } else {
+      console.error('User verification failed:', data.message || 'Unknown error');
+      alert(`登入失敗：${data.message || '無效的使用者或權限不足'}`);
+      googleIdToken = null; // 清除無效 Token
+      showLoginUI(); // 顯示登入介面
+    }
+  } catch (error) {
+    console.error('Error during user verification:', error);
+    alert('網路錯誤，無法驗證使用者身份。');
+    googleIdToken = null; // 清除 Token
+    showLoginUI(); // 顯示登入介面
+  }
+}
+
+// 顯示登入介面
+function showLoginUI() {
+    loginContainer.style.display = 'block';
+    mainContent.style.display = 'none';
+    userEmailSpan.textContent = '';
+}
+
+// 處理登出
+function logout() {
+    google.accounts.id.disableAutoSelect(); // 禁用自動選擇
+    googleIdToken = null; // 清除 Token
+    showLoginUI(); // 顯示登入介面
+    console.log('User logged out.');
+}
+
+// --- 輔助函式 ---
+
 async function loadFiles() {
+  if (!googleIdToken) {
+    fileList.innerHTML = '<p>請先登入以載入檔案列表。</p>';
+    showLoginUI();
+    return;
+  }
   fileList.innerHTML = '載入中...';
   try {
-    const res = await fetch('https://api.github.com/repos/PGpenguin72/file.arcantstudio.com/contents/public');
+    const res = await fetch('https://api.github.com/repos/PGpenguin72/file.arcantstudio.com/contents/public', {
+      headers: {
+        // 在這裡加入 GitHub token 認證
+        // 注意：GitHub API 讀取公開 repo 的 public 目錄不一定需要 token，但為了安全和速率限制，
+        // 建議在 Worker 端處理這個列表獲取，然後 Worker 回傳給你。
+        // 不過，如果您的 GitHub repo 是公開的，直接這樣讀取也行。
+        // 如果您的 repo 是私有的，這裡需要加 token
+        // 'Authorization': `Bearer YOUR_GITHUB_READ_TOKEN` // 例如
+      }
+    });
     
     if (!res.ok) {
       if (res.status === 404) {
@@ -24,7 +110,6 @@ async function loadFiles() {
     const files = await res.json();
     console.log('GitHub API 回應：', files);
     
-    // 檢查回應格式
     if (!Array.isArray(files)) {
       if (files.message) {
         fileList.innerHTML = `GitHub API 錯誤：${files.message}`;
@@ -41,7 +126,6 @@ async function loadFiles() {
       return;
     }
     
-    // 過濾出檔案（排除目錄）
     const fileItems = files.filter(item => item.type === 'file');
     
     if (fileItems.length === 0) {
@@ -74,10 +158,9 @@ async function loadFiles() {
   }
 }
 
-// 將 ArrayBuffer 轉換為 Base64，適用於大檔案
 function arrayBufferToBase64(buffer) {
   const uint8Array = new Uint8Array(buffer);
-  const chunkSize = 8192; // 以 8KB 為單位處理，避免堆疊溢位
+  const chunkSize = 8192; 
   let binaryString = '';
   
   for (let i = 0; i < uint8Array.length; i += chunkSize) {
@@ -88,7 +171,6 @@ function arrayBufferToBase64(buffer) {
   return btoa(binaryString);
 }
 
-// 格式化檔案大小顯示
 function formatFileSize(bytes) {
   if (bytes === 0) return '0 位元組';
   const k = 1024;
@@ -97,8 +179,12 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// 刪除檔案功能
 async function deleteFile(filename, sha) {
+  if (!googleIdToken) {
+    alert('請先登入！');
+    showLoginUI();
+    return;
+  }
   if (!confirm(`確定要刪除檔案 "${filename}" 嗎？此操作無法復原！`)) {
     return;
   }
@@ -110,6 +196,7 @@ async function deleteFile(filename, sha) {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${googleIdToken}` // 加入 Authorization header
       },
       body: JSON.stringify({ 
         filename: filename,
@@ -139,7 +226,6 @@ async function deleteFile(filename, sha) {
     console.log('刪除成功回應：', data);
     alert(`檔案 "${filename}" 已成功刪除！`);
     
-    // 重新載入檔案列表
     await loadFiles();
     
   } catch (error) {
@@ -148,9 +234,21 @@ async function deleteFile(filename, sha) {
   }
 }
 
-loadFiles();
+// --- 事件監聽器 ---
+
+// 頁面載入完成後，檢查登入狀態
+document.addEventListener('DOMContentLoaded', () => {
+    // 首次載入時，直接顯示登入介面，因為還沒有 token
+    showLoginUI(); 
+});
 
 button.onclick = async () => {
+  if (!googleIdToken) {
+    alert('請先登入才能上傳檔案！');
+    showLoginUI();
+    return;
+  }
+
   button.disabled = true;
   button.textContent = '上傳中...';
   
@@ -161,7 +259,6 @@ button.onclick = async () => {
       return;
     }
 
-    // 檢查檔案大小
     if (file.size > MAX_FILE_SIZE) {
       alert(`檔案太大！最大允許 ${formatFileSize(MAX_FILE_SIZE)}，您的檔案為 ${formatFileSize(file.size)}`);
       return;
@@ -174,7 +271,6 @@ button.onclick = async () => {
     
     console.log(`Base64 編碼後大小：${formatFileSize(base64.length)}`);
     
-    // 增加請求超時控制
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
@@ -185,6 +281,7 @@ button.onclick = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${googleIdToken}` // 加入 Authorization header
       },
       body: JSON.stringify({ 
         filename: file.name, 
@@ -198,7 +295,6 @@ button.onclick = async () => {
     console.log(`伺服器回應狀態：${res.status} ${res.statusText}`);
     
     if (!res.ok) {
-      // 嘗試讀取錯誤訊息
       let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
       try {
         const errorData = await res.json();
@@ -228,10 +324,8 @@ button.onclick = async () => {
     console.log('上傳成功回應：', data);
     alert(`上傳成功！檔案已儲存為：${file.name}`);
     
-    // 重置檔案輸入框
     input.value = '';
     
-    // 延遲一秒後重新載入檔案列表，讓 GitHub 有時間更新
     setTimeout(async () => {
       await loadFiles();
     }, 1000);
@@ -253,3 +347,10 @@ button.onclick = async () => {
     button.textContent = '上傳檔案';
   }
 };
+
+logoutBtn.addEventListener('click', logout);
+
+// 將 handleCredentialResponse 暴露給 Google Sign-In 函式庫
+window.handleCredentialResponse = handleCredentialResponse;
+// 將 deleteFile 暴露給 HTML 中的 onclick
+window.deleteFile = deleteFile;
