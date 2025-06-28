@@ -84,6 +84,7 @@ async function loadFiles() {
   }
   fileList.innerHTML = '<p class="info-message">載入中...</p>';
   try {
+    // GitHub API 會返回未編碼的檔案名稱，這是正確的
     const res = await fetch('https://api.github.com/repos/PGpenguin72/file.arcantstudio.com/contents/public');
     
     if (!res.ok) {
@@ -122,7 +123,8 @@ async function loadFiles() {
 
       // 檔案名稱和連結
       const fileLink = document.createElement('a');
-      fileLink.href = PUBLIC_FOLDER_URL + file.name;
+      // *** 這裡修改：對檔案名稱進行 URL 編碼 ***
+      fileLink.href = PUBLIC_FOLDER_URL + encodeURIComponent(file.name); 
       fileLink.target = '_blank';
       fileLink.className = 'file-link';
       
@@ -132,7 +134,7 @@ async function loadFiles() {
 
       const fileNameText = document.createElement('span');
       fileNameText.className = 'file-name-text';
-      fileNameText.textContent = file.name;
+      fileNameText.textContent = file.name; // 顯示原始名稱
 
       const fileSize = document.createElement('span');
       fileSize.className = 'file-size';
@@ -212,7 +214,7 @@ async function uploadFile() {
       },
       body: JSON.stringify({ 
         action: 'upload', 
-        filename: file.name, 
+        filename: file.name, // 這裡傳送原始檔名，讓 Worker 處理編碼
         content: base64 
       }),
       signal: controller.signal
@@ -297,7 +299,7 @@ async function deleteFile(filename, sha) {
       },
       body: JSON.stringify({ 
         action: 'delete', 
-        filename: filename,
+        filename: filename, // 這裡傳送原始檔名，讓 Worker 處理編碼
         sha: sha
       }),
     });
@@ -356,8 +358,8 @@ async function renameFile(oldFilename, sha) {
       },
       body: JSON.stringify({
         action: 'rename', 
-        oldFilename: oldFilename,
-        newFilename: newFilename,
+        oldFilename: oldFilename, // 這裡傳送原始檔名，讓 Worker 處理編碼
+        newFilename: newFilename, // 這裡傳送原始檔名，讓 Worker 處理編碼
         sha: sha 
       })
     });
@@ -445,14 +447,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID' || !GOOGLE_CLIENT_ID) {
         alert('請在 upload.js 中設定您的 GOOGLE_CLIENT_ID');
         console.error('錯誤：GOOGLE_CLIENT_ID 未設定。請在 upload.js 檔案頂部設定正確的 Client ID。');
-        // 為了不阻擋介面顯示，這裡不 showLoginUI，但會顯示錯誤訊息
-        // 可以考慮將登入按鈕禁用或隱藏，直到設定正確
     }
 
-    // Google Identity Services 通常會處理 token 的持久化
-    // 因此這裡可以直接檢查，然後嘗試驗證
-    // 更好的做法是讓 GSI 自動檢查登入狀態，並透過 handleCredentialResponse 回調
-    // 初次載入時直接顯示登入介面，GSI 會自動嘗試登入（如果用戶已登入）
     showLoginUI(); 
 });
 
