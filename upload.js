@@ -18,6 +18,7 @@ let loginContainer;
 let mainContent;
 let userEmailSpan;
 let logoutButton; 
+let refreshButton; // 新增刷新按鈕的變數
 
 // --- Google 登入相關函式 ---
 async function handleCredentialResponse(response) {
@@ -123,7 +124,6 @@ async function loadFiles() {
 
       // 檔案名稱和連結
       const fileLink = document.createElement('a');
-      // *** 這裡修改：對檔案名稱進行 URL 編碼 ***
       fileLink.href = PUBLIC_FOLDER_URL + encodeURIComponent(file.name); 
       fileLink.target = '_blank';
       fileLink.className = 'file-link';
@@ -435,12 +435,16 @@ document.addEventListener('DOMContentLoaded', () => {
     mainContent = document.getElementById('main-content');
     userEmailSpan = document.getElementById('user-email');
     logoutButton = document.getElementById('logout-btn'); 
+    refreshButton = document.getElementById('refresh-btn'); // 獲取新按鈕元素
 
     if (uploadButton) { 
         uploadButton.addEventListener('click', uploadFile);
     }
     if (logoutButton) { 
         logoutButton.addEventListener('click', logout);
+    }
+    if (refreshButton) { // 為刷新按鈕添加事件監聽器
+        refreshButton.addEventListener('click', loadFiles);
     }
     
     // 如果沒有設定 Google Client ID，給出提示
