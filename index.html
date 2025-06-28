@@ -8,34 +8,44 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <div id="login-container" style="display: block;">
-    <h2>管理員登入</h2>
-    <div id="g_id_onload"
-         data-client_id="98570753690-5lkkv0cg3r6d71cc9rs2p8uijmo8b8rv.apps.googleusercontent.com" data-callback="handleCredentialResponse"
-         data-auto_prompt="false">
+  <div class="container">
+    <div id="login-container" class="auth-section" style="display: block;">
+      <h2>管理員登入</h2>
+      <div id="g_id_onload"
+           data-client_id="YOUR_GOOGLE_CLIENT_ID" data-callback="handleCredentialResponse"
+           data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin"
+           data-type="standard"
+           data-size="large"
+           data-theme="outline"
+           data-text="sign_in_with"
+           data-shape="rectangular"
+           data-logo_alignment="left">
+      </div>
+      <p class="auth-hint">請使用管理員帳戶登入以管理檔案。</p>
     </div>
-    <div class="g_id_signin"
-         data-type="standard"
-         data-size="large"
-         data-theme="outline"
-         data-text="sign_in_with"
-         data-shape="rectangular"
-         data-logo_alignment="left">
+
+    <div id="main-content" style="display: none;">
+      <header>
+        <h1>📦 我的雲端硬碟</h1>
+        <div class="user-info">
+          <span id="user-email"></span>
+          <button id="logout-btn" class="btn btn-secondary">登出</button>
+        </div>
+      </header>
+      
+      <section class="upload-section">
+        <h2>上傳新檔案</h2>
+        <input type="file" id="file-input" class="file-input"/>
+        <button id="upload-btn" class="btn btn-primary">上傳</button>
+      </section>
+
+      <section class="file-list-section">
+        <h2>已上傳檔案</h2>
+        <div id="file-list" class="file-grid">載入中...</div>
+      </section>
     </div>
-    <p>請使用管理員帳戶登入。</p>
-  </div>
-
-  <div id="main-content" style="display: none;">
-    <p>歡迎，<span id="user-email"></span>！<button id="logout-btn" style="margin-left: 10px;">登出</button></p>
-
-    <h1>📦 我的雲端硬碟</h1>
-    
-    <div id="file-list">載入中...</div>
-
-    <h2>上傳檔案</h2>
-    <input type="file" id="file-input"/>
-    <button id="upload-btn">上傳</button>
-
   </div>
   <script src="upload.js"></script>
 </body>
