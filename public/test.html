@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API 狀態檢查器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 Lucide Icons for a clean, modern look -->
+  <script type="module" src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+
+  <div class="max-w-xl w-full">
+    <!-- Card container with rounded corners and shadow -->
+    <div class="bg-white rounded-lg shadow-xl border-t-4 border-t-blue-500 overflow-hidden">
+      <div class="p-6">
+        <h1 class="text-2xl font-bold text-gray-800 text-center">API 狀態檢查器</h1>
+      </div>
+      <div class="p-6 pt-0">
+        <ul id="status-list" class="space-y-4">
+          <!-- Status items will be dynamically added here -->
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 設定後端 API 的基礎 URL
+    // Set the base URL for the backend API
+    const API_BASE_URL = "http://118.168.237.145:72";
+
+    // 定義要測試的 API 端點列表及其 HTTP 方法
+    // Define the list of API endpoints to test and their HTTP methods
+    const endpointsToTest = [
+      { endpoint: "/api/health", method: "GET" },
+      { endpoint: "/api/scan", method: "POST" },
+      { endpoint: "/api/books", method: "GET" },
+      { endpoint: "/api/readers", method: "GET" },
+      { endpoint: "/api/borrow", method: "POST" },
+      { endpoint: "/api/return", method: "POST" },
+      { endpoint: "/api/stats", method: "GET" },
+      { endpoint: "/api/borrow-records", method: "GET" },
+    ];
+
+    // 根據狀態回傳對應的 HTML 標籤
+    // Return the corresponding HTML tag based on the status
+    const getStatusHtml = (status) => {
+      switch (status) {
+        case 'success':
+          return `<div class="text-green-500"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div>`;
+        case 'error':
+          return `<div class="text-red-500"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>`;
+        default:
+          return `<div class="text-gray-500"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><line x1="12" y1="2" x2="12" y2="12"/></svg></div>`;
+      }
+    };
+
+    // 異步測試所有端點
+    // Asynchronously test all endpoints
+    const testEndpoints = async () => {
+      const statusList = document.getElementById('status-list');
+      
+      for (const item of endpointsToTest) {
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-4 p-3 rounded-md border bg-white shadow-sm';
+        li.innerHTML = `
+          ${getStatusHtml('pending')}
+          <div class="flex-1">
+            <span class="font-medium text-gray-700">${item.endpoint}</span>
+            <span class="ml-2 text-xs font-semibold uppercase text-gray-400">(${item.method})</span>
+          </div>
+          <span class="ml-auto text-sm font-semibold text-gray-600">測試中...</span>
+        `;
+        statusList.appendChild(li);
+
+        try {
+          const fetchOptions = {
+            method: item.method,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          };
+          if (item.method === 'POST') {
+            fetchOptions.body = JSON.stringify({});
+          }
+
+          const response = await fetch(`${API_BASE_URL}${item.endpoint}`, fetchOptions);
+          
+          li.innerHTML = `
+            ${getStatusHtml(response.ok ? 'success' : 'error')}
+            <div class="flex-1">
+              <span class="font-medium text-gray-700">${item.endpoint}</span>
+              <span class="ml-2 text-xs font-semibold uppercase text-gray-400">(${item.method})</span>
+            </div>
+            <span class="ml-auto text-sm font-semibold ${response.ok ? 'text-green-600' : 'text-red-600'}">
+              ${response.ok ? '上線' : '離線'}
+            </span>
+          `;
+
+        } catch (error) {
+          console.error(`Fetch Error for ${item.endpoint} (${item.method}):`, error);
+          li.innerHTML = `
+            ${getStatusHtml('error')}
+            <div class="flex-1">
+              <span class="font-medium text-gray-700">${item.endpoint}</span>
+              <span class="ml-2 text-xs font-semibold uppercase text-gray-400">(${item.method})</span>
+            </div>
+            <span class="ml-auto text-sm font-semibold text-red-600">離線</span>
+          `;
+        }
+      }
+    };
+    
+    // 在頁面載入時啟動測試
+    // Start the test when the page loads
+    window.onload = testEndpoints;
+
+  </script>
+</body>
+</html>
